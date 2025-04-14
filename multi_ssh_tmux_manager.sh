@@ -82,12 +82,31 @@ function run_layout() {
 }
 
 function create_new_layout() {
-  INVENTORY_FILE=$(whiptail --title "Server Inventory" --inputbox "Enter the path to the server inventory file:" 10 60 "$HOME/servers.txt" 3>&1 1>&2 2>&3)
+  
+# Prompt for inventory path
+inventory_path=$(whiptail --inputbox "Enter path to your server inventory file. You will be asked to enter your servers IP. Localhost is added automatically. (e.g., ~/servers.txt):" 10 60 "$HOME/servers.txt" --title "Server Directory" 3>&1 1>&2 2>&3)
 
-  if [[ ! -f "$INVENTORY_FILE" ]]; then
-    whiptail --title "Error" --msgbox "The inventory file $INVENTORY_FILE does not exist. Exiting." 10 50
+# Expand ~ to $HOME if necessary
+inventory_path="${inventory_path/#\~/$HOME}"
+
+# If inventory file doesn't exist, create it interactively
+if [[ ! -f "$inventory_path" ]]; then
+  whiptail --title "Inventory Not Found" --yesno "The file '$inventory_path' doesn't exist. Would you like to create it now?" 10 60
+  if [[ $? -eq 0 ]]; then
+    echo "localhost" > "$inventory_path"
+    while true; do
+      new_server=$(whiptail --inputbox "Enter a server IP or hostname (leave blank to finish):" 10 60 --title "Add Server" 3>&1 1>&2 2>&3)
+      [[ -z "$new_server" ]] && break
+      echo "$new_server" >> "$inventory_path"
+    done
+    whiptail --msgbox "Server inventory saved to $inventory_path." 10 60
+  else
+    echo "No inventory file provided. Exiting."
     exit 1
   fi
+fi
+
+
 
   LAYOUT_NAME=$(whiptail --inputbox "Name for this layout (used to save it):" 10 60 "default" 3>&1 1>&2 2>&3)
   LAYOUT_FILE="$LAYOUTS_DIR/$LAYOUT_NAME.layout"
